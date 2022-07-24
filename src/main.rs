@@ -5,12 +5,12 @@ fn main() -> std::io::Result<()> {
     let args: Vec<_> = std::env::args().collect();
     let command = &args[3];
     let command_args = &args[4..];
-    std::fs::create_dir("/sndbx").unwrap();
-    std::fs::create_dir("/sndbx/dev").unwrap();
-    std::fs::copy(command, "/sndbx/app").unwrap();
-    std::fs::File::create("/sndbx/dev/null").unwrap();
+    std::fs::create_dir("/sandbox").unwrap();
+    std::fs::create_dir("/sandbox/dev").unwrap();
+    std::fs::copy(command, "/sandbox/app").unwrap();
+    std::fs::File::create("/sandbox/dev/null").unwrap();
     let code = unsafe {
-        libc::chroot("/sndbx\0".as_ptr() as *const i8)
+        libc::chroot("/sandbox\0".as_ptr() as *const i8)
     };
     if code != 0 {
         return Err(std::io::Error::last_os_error());
@@ -21,7 +21,7 @@ fn main() -> std::io::Result<()> {
         .output()
         .unwrap();
 
-    std::fs::remove_dir_all("/some/dir").unwrap();
+    std::fs::remove_dir_all("/").unwrap();
 
     io::stdout().write_all(&output.stdout).unwrap();
     io::stderr().write_all(&output.stderr).unwrap();
