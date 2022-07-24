@@ -19,6 +19,13 @@ fn main() -> std::io::Result<()> {
     if code != 0 {
         return Err(std::io::Error::last_os_error());
     }
+
+    let code = unsafe {
+        libc::unshare(libc::CLONE_NEWPID)
+    };
+    if code != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
     std::env::set_current_dir("/")?;
     let output = std::process::Command::new("/app")
         .args(command_args)
