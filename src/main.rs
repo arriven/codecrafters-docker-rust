@@ -10,11 +10,10 @@ fn main() {
         .args(command_args)
         .output()
         .unwrap();
-    
-    if output.status.success() {
-        io::stdout().write_all(&output.stdout).unwrap();
-        io::stderr().write_all(&output.stderr).unwrap();
-    } else {
-        std::process::exit(1);
+
+    io::stdout().write_all(&output.stdout).unwrap();
+    io::stderr().write_all(&output.stderr).unwrap();
+    if let Some(code) = output.status.code() {
+        std::process::exit(code);
     }
 }
