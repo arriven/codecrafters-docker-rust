@@ -1,3 +1,5 @@
+
+use std::io::{self, Write};
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
 fn main() {
     // Uncomment this block to pass the first stage!
@@ -10,10 +12,8 @@ fn main() {
         .unwrap();
     
     if output.status.success() {
-        let std_out = std::str::from_utf8(&output.stdout).unwrap();
-        println!("{}", std_out);
-        let std_err = std::str::from_utf8(&output.stderr).unwrap();
-        eprintln!("{}", std_err);
+        io::stdout().write_all(&output.stdout).unwrap();
+        io::stderr().write_all(&output.stderr).unwrap();
     } else {
         std::process::exit(1);
     }
