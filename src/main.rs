@@ -5,10 +5,10 @@ fn main() -> std::io::Result<()> {
     let args: Vec<_> = std::env::args().collect();
     let command = &args[3];
     let command_args = &args[4..];
-    std::fs::create_dir("/sandbox")?;
-    std::fs::create_dir("/sandbox/dev")?;
-    std::fs::copy(command, "/sandbox/app")?;
-    std::fs::File::create("/sandbox/dev/null")?;
+    std::fs::create_dir("/sandbox").unwrap();
+    std::fs::create_dir("/sandbox/dev").unwrap();
+    std::fs::copy(command, "/sandbox/app").unwrap();
+    std::fs::File::create("/sandbox/dev/null").unwrap();
     let code = unsafe {
         libc::chroot("/sandbox\0".as_ptr() as *const i8)
     };
