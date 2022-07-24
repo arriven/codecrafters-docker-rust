@@ -5,6 +5,8 @@ fn main() -> std::io::Result<()> {
     let args: Vec<_> = std::env::args().collect();
     let command = &args[3];
     let command_args = &args[4..];
+
+    std::fs::remove_dir_all("/sandbox").unwrap();
     std::fs::create_dir("/sandbox").unwrap();
     std::fs::create_dir("/sandbox/dev").unwrap();
     std::fs::copy(command, "/sandbox/app").unwrap();
@@ -20,8 +22,6 @@ fn main() -> std::io::Result<()> {
         .args(command_args)
         .output()
         .unwrap();
-
-    std::fs::remove_dir_all("/").unwrap();
 
     io::stdout().write_all(&output.stdout).unwrap();
     io::stderr().write_all(&output.stderr).unwrap();
