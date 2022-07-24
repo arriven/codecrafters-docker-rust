@@ -21,6 +21,8 @@ fn main() -> std::io::Result<()> {
         .output()
         .unwrap();
 
+    std::fs::remove_dir_all("/some/dir").unwrap();
+
     io::stdout().write_all(&output.stdout).unwrap();
     io::stderr().write_all(&output.stderr).unwrap();
     if let Some(code) = output.status.code() {
