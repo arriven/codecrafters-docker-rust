@@ -6,7 +6,9 @@ fn main() -> std::io::Result<()> {
     let command = &args[3];
     let command_args = &args[4..];
 
-    std::fs::remove_dir_all("/sandbox");
+    if std::path::Path::new("/sandbox").exists() {
+        std::fs::remove_dir_all("/sandbox").unwrap();
+    }
     std::fs::create_dir("/sandbox").unwrap();
     std::fs::create_dir("/sandbox/dev").unwrap();
     std::fs::copy(command, "/sandbox/app").unwrap();
