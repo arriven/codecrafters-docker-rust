@@ -9,7 +9,12 @@ fn main() -> std::io::Result<()> {
     std::fs::create_dir("/sandbox/dev")?;
     std::fs::copy(command, "/sandbox/app")?;
     std::fs::File::create("/sandbox/dev/null")?;
-    std::os::unix::fs::chroot("/sandbox")?;
+    let code = unsafe {
+        libc::chroot("/sandbox\0".as_ptr() as *const i8)
+    };
+    if code != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
     std::env::set_current_dir("/")?;
     let output = std::process::Command::new("/app")
         .args(command_args)
