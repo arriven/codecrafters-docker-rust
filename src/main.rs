@@ -25,7 +25,7 @@ fn main() -> std::io::Result<()> {
 
 fn chroot(path: &str) -> std::io::Result<()> {
     let code = unsafe {
-        libc::chroot(path.as_ptr().cast::<i8>())
+        libc::chroot(format!("{}\0", path).as_ptr().cast::<i8>())
     };
     if code != 0 {
         return Err(std::io::Error::last_os_error());
