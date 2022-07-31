@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
-fn main() -> std::io::Result<()> {
+fn main() {
     // Uncomment this block to pass the first stage!
     let args: Vec<_> = std::env::args().collect();
     let image = &args[2];
@@ -21,12 +21,11 @@ fn main() -> std::io::Result<()> {
     if let Some(code) = output.status.code() {
         std::process::exit(code);
     }
-    Ok(())
 }
 
 fn pull(image: &str, path: &str) -> std::io::Result<()> {
-    let parts = image.split(":").collect::<Vec<&str>>();
-    let repo = if parts[0].contains("/") {
+    let parts = image.split(':').collect::<Vec<&str>>();
+    let repo = if parts[0].contains('/') {
         parts[0].to_string()
     } else {
         format!("library/{}", parts[0])
@@ -51,14 +50,14 @@ fn pull(image: &str, path: &str) -> std::io::Result<()> {
         .unwrap();
     let oauth_values = auth_header
         .trim_start_matches("Bearer ")
-        .split(",")
+        .split(',')
         .map(parse_oauth_value)
         .collect::<std::collections::HashMap<&str, &str>>();
 
     let body: serde_json::Value = reqwest::blocking::get(&format!(
         "{}?service={}&scope={}",
         oauth_values.get("realm").unwrap(),
-        oauth_values.get("service").unwrap().to_string(),
+        oauth_values.get("service").unwrap(),
         oauth_values.get("scope").unwrap()
     ))
     .unwrap()
@@ -86,7 +85,7 @@ fn pull(image: &str, path: &str) -> std::io::Result<()> {
                         .send()
                         .unwrap();
                     let layer = response.bytes().unwrap();
-                    let filename = digest.replace(":", "_");
+                    let filename = digest.replace(':', "_");
                     let mut file = std::fs::File::create(format!("{}.tar", filename))?;
                     file.write_all(&layer)?;
                     let output = std::process::Command::new("tar")
@@ -102,7 +101,7 @@ fn pull(image: &str, path: &str) -> std::io::Result<()> {
 }
 
 fn parse_oauth_value(value: &str) -> (&str, &str) {
-    let parts = value.split("=").collect::<Vec<&str>>();
+    let parts = value.split('=').collect::<Vec<&str>>();
     assert!(parts.len() == 2);
     let key = &parts[0];
     let value = &parts[1].trim_matches('\"');
@@ -124,10 +123,10 @@ fn chroot(path: &str) -> std::io::Result<()> {
 
 fn init_sandbox(path: &str) -> std::io::Result<()> {
     if std::path::Path::new(path).exists() {
-        std::fs::remove_dir_all(path).unwrap();
+        std::fs::remove_dir_all(path)?;
     }
-    std::fs::create_dir(path).unwrap();
-    std::fs::create_dir(path.to_string() + "/dev").unwrap();
-    std::fs::File::create(path.to_string() + "/dev/null").unwrap();
+    std::fs::create_dir(path)?;
+    std::fs::create_dir(path.to_string() + "/dev")?;
+    std::fs::File::create(path.to_string() + "/dev/null")?;
     Ok(())
 }
