@@ -26,7 +26,9 @@ fn main() -> std::io::Result<()> {
 
 fn pull(image: &str, path: &str) -> std::io::Result<()> {
     let parts = image.split(":").collect::<Vec<&str>>();
-    assert!(parts.len() == 2, "image should be of format repo:tag");
+    if parts.len() != 2 {
+        println!("image {}", image);
+    }
     let repo = parts[0];
     let tag = parts[1];
     //https://registry.hub.docker.com/v2/library/ubuntu/manifests/latest
