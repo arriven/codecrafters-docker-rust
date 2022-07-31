@@ -26,11 +26,12 @@ fn main() -> std::io::Result<()> {
 
 fn pull(image: &str, path: &str) -> std::io::Result<()> {
     let parts = image.split(":").collect::<Vec<&str>>();
-    if parts.len() != 2 {
-        println!("image {}", image);
-    }
     let repo = parts[0];
-    let tag = parts[1];
+    let tag = if parts.len() < 2 {
+        "latest"
+    }  else {
+        parts[1]
+    };
     //https://registry.hub.docker.com/v2/library/ubuntu/manifests/latest
     let response = reqwest::blocking::get(&format!("https://registry.hub.docker.com/v2/library/{}/manifests/{}", repo, tag)).unwrap();
     if response.status() == reqwest::StatusCode::UNAUTHORIZED {
