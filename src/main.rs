@@ -3,14 +3,15 @@ use std::io::{self, Write};
 fn main() -> std::io::Result<()> {
     // Uncomment this block to pass the first stage!
     let args: Vec<_> = std::env::args().collect();
+    let image = &args[2];
     let command = &args[3];
     let command_args = &args[4..];
 
-    init_sandbox("/sandbox").unwrap();
-    std::fs::copy(command, "/sandbox/app").unwrap();
-    chroot("/sandbox").unwrap();
+    init_sandbox("sandbox").unwrap();
+    pull(image, "sandbox").unwrap();
+    chroot("sandbox").unwrap();
     
-    let output = std::process::Command::new("/app")
+    let output = std::process::Command::new(command)
         .args(command_args)
         .output()
         .unwrap();
@@ -21,6 +22,75 @@ fn main() -> std::io::Result<()> {
         std::process::exit(code);
     }
     Ok(())
+}
+
+fn pull(image: &str, path: &str) -> std::io::Result<()> {
+    let parts = image.split(":").collect::<Vec<&str>>();
+    assert!(parts.len() == 2, "image should be of format repo:tag");
+    let repo = parts[0];
+    let tag = parts[1];
+    //https://registry.hub.docker.com/v2/library/ubuntu/manifests/latest
+    let response = reqwest::blocking::get(&format!("https://registry.hub.docker.com/v2/library/{}/manifests/{}", repo, tag)).unwrap();
+    if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+        let auth_header = response.headers().get("Www-Authenticate").unwrap().to_str().unwrap();
+        let oauth_endpoint = parse_oauth_header(auth_header);
+
+        let response = reqwest::blocking::get(&format!("{}?service={}&scope={}", oauth_endpoint.realm, oauth_endpoint.service, oauth_endpoint.scope)).unwrap();
+        
+        let body: serde_json::Value = response.json().unwrap();
+        if let serde_json::Value::String(ref token) = body["token"] {
+            let client = reqwest::blocking::Client::new();
+            let manifest: serde_json::Value = client.get(&format!("https://registry.hub.docker.com/v2/library/{}/manifests/{}", repo, tag))
+                .header("Authorization", format!("Bearer {}", token)).send().unwrap().json().unwrap();
+            if let serde_json::Value::Array(ref fs_layers) = manifest["fsLayers"] {
+                for fs_layer in fs_layers.iter() {
+                    if let serde_json::Value::String(ref digest) = fs_layer["blobSum"] {
+                        let response = client.get(&format!("https://registry.hub.docker.com/v2/library/{}/blobs/{}", repo, digest))
+                            .header("Authorization", format!("Bearer {}", token)).send().unwrap();
+                        let layer = response.bytes().unwrap();
+                        let filename = digest.replace(":", "_");
+                        let mut file = std::fs::File::create(format!("{}.tar", filename))?;
+                        file.write_all(&layer)?;
+                        let output = std::process::Command::new("tar")
+                            .args(["xf", &format!("{}.tar", filename), "-C", path])
+                            .output()
+                            .unwrap();
+                        io::stdout().write_all(&output.stdout).unwrap();
+                        io::stderr().write_all(&output.stderr).unwrap();
+                        assert!(output.status.success());
+                    }
+                }
+            } else {
+                println!("wrong type");
+            }
+        }
+    }
+    //https://auth.docker.io/token\?service\=registry.docker.io\&scope\=repository:library/ubuntu:pull
+    Ok(())
+}
+
+#[derive(Debug)]
+struct OauthEndpoint {
+    realm: String,
+    service: String,
+    scope: String,
+}
+
+fn parse_oauth_header(header: &str) -> OauthEndpoint {
+    let auth_values = header.trim_start_matches("Bearer ").split(",").map(parse_oauth_value).collect::<std::collections::HashMap<&str,&str>>();
+    OauthEndpoint{
+        realm: auth_values.get("realm").unwrap().to_string(),
+        service: auth_values.get("service").unwrap().to_string(),
+        scope: auth_values.get("scope").unwrap().to_string(),
+    }
+}
+
+fn parse_oauth_value(value: &str) -> (&str, &str) {
+    let parts = value.split("=").collect::<Vec<&str>>();
+    assert!(parts.len() == 2);
+    let key = &parts[0];
+    let value = &parts[1].trim_matches('\"');
+    (key, value)
 }
 
 fn chroot(path: &str) -> std::io::Result<()> {
